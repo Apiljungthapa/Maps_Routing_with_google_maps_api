@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Optimized Route with Distance and Time</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            height: 70vh;
+            width: 100%;
+        }
+        #directionsPanel {
+            margin: 20px auto;
+            width: 80%;
+            max-width: 800px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            overflow: auto;
+        }
+        .route-segment {
+            margin-bottom: 15px;
+        }
+        .route-segment:last-child {
+            margin-bottom: 0;
+        }
+        .route-segment h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.1em;
+            color: #333;
+        }
+        .route-segment p {
+            margin: 0;
+            font-size: 0.9em;
+            color: #555;
+        }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=your_api_key&callback=initMap" async defer></script>
+    <script>
+        function initMap() {
+            var directionsService = new google.maps.DirectionsService();
+            var directionsRenderer = new google.maps.DirectionsRenderer();
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 15,
+                center: {lat: 27.708506, lng: 85.323460} // Default center
+            });
+            directionsRenderer.setMap(map);
+            directionsRenderer.setPanel(document.getElementById('directionsPanel'));
+
+            // Check if the Geolocation API is supported
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var currentLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    // Add a circle around the current location
+                    var currentLocationCircle = new google.maps.Circle({
+                        strokeColor: "#FF0000",
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        fillColor: "#FF0000",
+                        fillOpacity: 0.35,
+                        map: map,
+                        center: currentLocation,
+                        radius: 5 // Radius in meters
+                    });
+
+                    // Center the map to the current location
+                    map.setCenter(currentLocation);
+
+                    var request = {
+                        origin: currentLocation,
+                        destination: 'Tinkune, Kathmandu, Nepal',
+                        waypoints: [
+                            {location: 'Chabahil, Kathmandu, Nepal'},
+                            {location: 'Old Baneshwor, Kathmandu, Nepal'},
+                            {location: 'Sinamangal, Kathmandu, Nepal'}
+                        ],
+                        provideRouteAlternatives: true,
+                        optimizeWaypoints: true,
+                        travelMode: 'DRIVING',
+                        drivingOptions: {
+                            departureTime: new Date(),
+                            trafficModel: 'pessimistic'
+                        },
+                        unitSystem: google.maps.UnitSystem.IMPERIAL
+                    };
+
+                    directionsService.route(request, function(result, status) {
+                        if (status === 'OK') {
+                            directionsRenderer.setDirections(result);
+                            var route = result.routes[0];
+                            var summaryPanel = document.getElementById('directionsPanel');
+                            summaryPanel.innerHTML = '';
+                            for (var i = 0; i < route.legs.length; i++) {
+                                var routeSegment = i + 1;
+                                var segmentDiv = document.createElement('div');
+                                segmentDiv.className = 'route-segment';
+                                segmentDiv.innerHTML = `
+                                    <h3>Route Segment: ${routeSegment}</h3>
+                                    <p>${route.legs[i].start_address} to ${route.legs[i].end_address}</p>
+                                    <p><strong>Distance:</strong> ${route.legs[i].distance.text}</p>
+                                    <p><strong>Duration:</strong> ${route.legs[i].duration.text}</p>
+                                `;
+                                summaryPanel.appendChild(segmentDiv);
+                            }
+                        } else {
+                            console.error('Directions request failed due to ' + status);
+                            alert('Directions request failed due to ' + status);
+                        }
+                    });
+                }, function(error) {
+                    console.error('Error occurred. Error code: ' + error.code);
+                    alert('Error in fetching current location. Please check if location is enabled on your device.');
+                }, {
+                    enableHighAccuracy: true, // Enable high accuracy
+                    timeout: 10000, // Set timeout to 10 seconds
+                    maximumAge: 0 // No cache
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="directionsPanel"></div>
+</body>
+</html>
